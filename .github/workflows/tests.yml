@@ -1,0 +1,41 @@
+name: brew test-bot
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash -xeuo pipefail {0}
+
+jobs:
+  test-bot:
+    strategy:
+      matrix:
+        os: [ macos-26 ]
+        include:
+          - os: ubuntu-latest
+            container:
+              image: ghcr.io/homebrew/brew:main
+              options: --privileged
+    runs-on: ${{ matrix.os }}
+    container: ${{ fromJSON(toJSON(matrix.container)) }}
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@eb02c69dbabdb66ff183c614f4ce7ab3c077592c # 2026.10.12.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: brew test-bot --only-cleanup-before
+      - run: brew test-bot --only-setup
+      - run: brew test-bot --only-tap-syntax
